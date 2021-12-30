@@ -280,7 +280,7 @@ function drawLayerSymbols(painter, sourceCache, layer, coords, isText, translate
         const bucket: SymbolBucket = (tile.getBucket(layer): any);
         if (!bucket || bucket.projection !== tr.projection.name) continue;
         const buffers = isText ? bucket.text : bucket.icon;
-        if (!buffers || !buffers.segments.get().length) continue;
+        if (!buffers || bucket.fullyClipped || !buffers.segments.get().length) continue;
         const programConfiguration = buffers.programConfigurations.get(layer.id);
 
         const isSDF = isText || bucket.sdfIcons;

@@ -4,6 +4,7 @@ import {createMap as globalCreateMap} from '../../util/index.js';
 import Marker from '../../../src/ui/marker.js';
 import Popup from '../../../src/ui/popup.js';
 import LngLat from '../../../src/geo/lng_lat.js';
+import {Event} from '../../../src/util/evented.js';
 import Point from '@mapbox/point-geometry';
 import simulate from '../../util/simulate_interaction.js';
 
@@ -165,6 +166,21 @@ test('Enter key on Marker opens a popup that was closed', (t) => {
 
     // popup open after Enter keypress
     t.ok(marker.getPopup().isOpen());
+
+    map.remove();
+    t.end();
+});
+
+test('Interactive markers should have a default aria-label and a role attribute set to button', (t) => {
+    const map = createMap(t);
+    const element = window.document.createElement('div');
+    const marker = new Marker({color: "#FFFFFF", element})
+        .setLngLat([0, 0])
+        .addTo(map)
+        .setPopup(new Popup());
+
+    t.ok(marker.getElement().hasAttribute('aria-label'));
+    t.equal(marker.getElement().getAttribute('role'), 'button');
 
     map.remove();
     t.end();
@@ -920,4 +936,48 @@ test('Marker and fog', (t) => {
             t.end();
         });
     });
+});
+
+test('Snap To Pixel', (t) => {
+    const map = createMap(t);
+    const marker = new Marker({draggable: true})
+        .setLngLat([1, 2])
+        .addTo(map);
+    t.test("Snap To Pixel immediately after initializing marker", (t) => {
+        t.same(marker._pos, marker._pos.round());
+        t.end();
+    });
+    t.test("Not Immediately Snap To Pixel After setLngLat", (t) => {
+        marker.setLngLat([2, 1]);
+        const pos = marker._pos;
+        setTimeout(() => {
+            t.notSame(marker._pos, pos);
+            t.same(marker._pos, pos.round());
+            t.end();
+        }, 100);
+    });
+    t.test("Immediately Snap To Pixel on moveend", (t) => {
+        map.fire(new Event("moveend"));
+        t.same(marker._pos, marker._pos.round());
+        t.end();
+    });
+    t.test("Not Immediately Snap To Pixel when Map move", (t) => {
+        map.fire(new Event("move"));
+        t.notSame(marker._pos, marker._pos.round());
+        window.requestAnimationFrame(() => {
+            t.same(marker._pos, marker._pos.round());
+            t.end();
+        });
+    });
+    t.test("Not Immediately Snap To Pixel when Map move and setLngLat", (t) => {
+        marker.setLngLat([1, 2]);
+        map.fire(new Event("move"));
+        t.notSame(marker._pos, marker._pos.round());
+        setTimeout(() => {
+            t.same(marker._pos, marker._pos.round());
+            t.end();
+        }, 100);
+    });
+    map.remove();
+    t.end();
 });
